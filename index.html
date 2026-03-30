@@ -13,6 +13,7 @@
             --main: #333;
             --bg: #fff;
             --accent: #eee;
+            --relax-green: rgba(200, 230, 201, 0.8); /* 薄い緑 */
             --radius: 15px;
         }
 
@@ -42,7 +43,6 @@
         h1 { font-size: 1.8rem; font-weight: 800; margin-bottom: 8px; letter-spacing: -1px; }
         .subtitle { font-size: 0.85rem; color: #666; font-weight: 500; margin-bottom: 30px; }
 
-        /* 呼吸アニメーションエリア */
         .visualizer-area {
             flex-grow: 1;
             display: flex;
@@ -52,23 +52,31 @@
             position: relative;
         }
 
+        /* 呼吸する円 */
         .circle {
             width: 120px;
             height: 120px;
             background-color: var(--main);
             border-radius: 50%;
-            transition: transform 0.1s linear;
             display: flex;
             align-items: center;
             justify-content: center;
             color: #fff;
             font-weight: 800;
-            font-size: 1.5rem;
+            font-size: 1.8rem;
+            position: relative;
+            z-index: 2;
+            transition: transform 0.1s linear, box-shadow 0.1s linear;
+        }
+
+        /* 緑の波紋アニメーション */
+        .circle.pulsing {
+            box-shadow: 0 0 40px 20px var(--relax-green);
         }
 
         .status-text {
-            margin-top: 30px;
-            font-size: 1.2rem;
+            margin-top: 40px;
+            font-size: 1.3rem;
             font-weight: 800;
             height: 1.5rem;
         }
@@ -80,7 +88,6 @@
             font-weight: 500;
         }
 
-        /* ボタン・UI */
         .action-btn {
             width: 100%;
             padding: 18px;
@@ -112,7 +119,6 @@
             border-radius: var(--radius); font-weight: 700; font-size: 13px; cursor: pointer;
         }
 
-        /* モーダル */
         #modal {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.6); align-items: center; justify-content: center; z-index: 100;
@@ -168,7 +174,6 @@
 <script>
     const circle = document.getElementById('circle');
     const statusText = document.getElementById('statusText');
-    const subText = document.getElementById('subText');
     const actionBtn = document.getElementById('actionBtn');
     
     let isRunning = false;
@@ -187,7 +192,7 @@
         actionBtn.innerText = 'STOP';
         actionBtn.classList.add('stop');
 
-        // 準備カウントダウン (3秒)
+        // 準備カウントダウン
         for (let i = 3; i > 0; i--) {
             if (!isRunning) return;
             statusText.innerText = `Ready in ${i}...`;
@@ -196,21 +201,21 @@
         }
 
         circle.innerText = '';
+        circle.classList.add('pulsing'); // 緑の波紋を有効化
         
-        // 呼吸ループ
         while (isRunning) {
-            // IN (4s)
+            // IN (4s) - 膨らむ
             statusText.innerText = 'Inhale';
-            animateCircle(4000, 1, 2.5); 
+            updateVisuals(4000, 2.2, 1); // 1は不透明度（波紋用）
             if (!await countdown(4)) break;
 
-            // HOLD (7s)
+            // HOLD (7s) - 静止
             statusText.innerText = 'Hold';
             if (!await countdown(7)) break;
 
-            // OUT (8s)
+            // OUT (8s) - 縮む
             statusText.innerText = 'Exhale';
-            animateCircle(8000, 2.5, 1);
+            updateVisuals(8000, 1, 0.3); // 波紋も薄くする
             if (!await countdown(8)) break;
         }
     }
@@ -222,12 +227,15 @@
         actionBtn.classList.remove('stop');
         statusText.innerText = 'Ready?';
         circle.innerText = '';
+        circle.classList.remove('pulsing');
+        circle.style.transition = 'transform 0.5s ease-out';
         circle.style.transform = 'scale(1)';
     }
 
-    function animateCircle(ms, from, to) {
-        circle.style.transition = `transform ${ms}ms linear`;
-        circle.style.transform = `scale(${to})`;
+    function updateVisuals(ms, scale, shadowOpacity) {
+        circle.style.transition = `transform ${ms}ms linear, box-shadow ${ms}ms linear`;
+        circle.style.transform = `scale(${scale})`;
+        // box-shadowの強度を動的に変える（オプション的な演出）
     }
 
     async function countdown(seconds) {
